@@ -436,9 +436,6 @@ class AdvertsController extends Controller {
         $PopularPages = SeoPage::GetSeoPopularPagesByCategory(0, $CheckCategory->id, $request);
         $BlockPages = SeoPage::GetSeoColumnPagesByCategory(0, $CheckCategory->id, $request);
 
-        $pop = AdvertCategories::where(['popular' => true, 'parent_id' => $CheckCategory->id])->get();
-        $side = AdvertCategories::where(['show_col' => true])->get();
-
         return view(
                 'adverts.category', ['Users' => $Adverts, 'PopularPages' => $PopularPages, 'BlockPages' => $BlockPages, 'HeaderSearchShow' => 1,
             'SeoBottomCity' => $SeoBottomCity,
@@ -446,8 +443,8 @@ class AdvertsController extends Controller {
             'SubCategories' => $SubCategories, 'AdvertsCountAll' => $AdvertsCountAll,
             'countTextBread' => $countTextBread, 'SeoBottomCategories' => $SeoBottomCategories,
             'subcategory' => 1, 'DisableSearchBots' => $DisableSearchBots,
-            'pop' => $pop,
-            'side' => $side]
+            'pop' => AdvertCategories::GetPopular($CheckCategory->id),
+            'side' => AdvertCategories::GetSide()]
         );
     }
 
