@@ -18,37 +18,37 @@
                 </tr>
             </thead>
             <tbody>
-            @foreach($listItems as $Item)
-            <tr>
-                <td><a class="link" href="{{route('admin.category.edit',$Item->id)}}">{{$Item->name}}</a></td>
-                <td>{{$Item->adverts_count}}</td>
-                <td>
-                    <a class="link-edit" href="{{route('admin.category.edit',$Item->id)}}"><i class="fa fa-pencil"></i></a>
-                    <a class="link-edit link-delete" href="{{route('admin.category.delete',$Item->id)}}"><i class="fa fa-trash-o"></i></a>
-                   </td>
-            </tr>
+                @foreach($listItems as $Item)
+                <tr>
+                    <td><a class="link" href="{{route('admin.category.edit',$Item->id)}}">{{$Item->name}}</a></td>
+                    <td>{{$Item->adverts_count}}</td>
+                    <td>
+                        <a class="link-edit" href="{{route('admin.category.edit',$Item->id)}}"><i class="fa fa-pencil"></i></a>
+                        <a class="link-edit link-delete" href="{{route('admin.category.delete',$Item->id)}}"><i class="fa fa-trash-o"></i></a>
+                    </td>
+                </tr>
                 @if($Item->children)
-                    @foreach($Item->children as $sItem)
-                        <tr class="s-item">
-                            <td><span class="s-item"></span><a class="link" href="{{route('admin.category.edit',$sItem->id)}}">{{$sItem->name}}</a></td>
-                            <td>{{$sItem->adverts_count}}</td>
-                            <td> <a class="link-edit" href="{{route('admin.category.edit',$sItem->id)}}"><i class="fa fa-pencil"></i></a>
-                                <a class="link-edit link-delete" href="{{route('admin.category.delete',$sItem->id)}}"><i class="fa fa-trash-o"></i></a></td>
-                        </tr>
+                @foreach($Item->children as $sItem)
+                <tr class="s-item">
+                    <td><span class="s-item"></span><a class="link" href="{{route('admin.category.edit',$sItem->id)}}">{{$sItem->name}}</a></td>
+                    <td>{{$sItem->adverts_count}}</td>
+                    <td> <a class="link-edit" href="{{route('admin.category.edit',$sItem->id)}}"><i class="fa fa-pencil"></i></a>
+                        <a class="link-edit link-delete" href="{{route('admin.category.delete',$sItem->id)}}"><i class="fa fa-trash-o"></i></a></td>
+                </tr>
 
-                        @if($sItem->children)
-                            @foreach($sItem->children as $ssItem)
-                                <tr class="s-item">
-                                    <td><span class="s-item-sub"></span><a class="link" href="{{route('admin.category.edit',$ssItem->id)}}">{{$ssItem->name}}</a></td>
-                                    <td>{{$ssItem->adverts_count}}</td>
-                                    <td> <a class="link-edit" href="{{route('admin.category.edit',$ssItem->id)}}"><i class="fa fa-pencil"></i></a>
-                                        <a class="link-edit link-delete" href="{{route('admin.category.delete',$ssItem->id)}}"><i class="fa fa-trash-o"></i></a></td>
-                                </tr>
-                            @endforeach
-                        @endif
+                @if($sItem->children)
+                @foreach($sItem->children as $ssItem)
+                <tr class="s-item">
+                    <td><span class="s-item-sub"></span><a class="link" href="{{route('admin.category.edit',$ssItem->id)}}">{{$ssItem->name}}</a></td>
+                    <td>{{$ssItem->adverts_count}}</td>
+                    <td> <a class="link-edit" href="{{route('admin.category.edit',$ssItem->id)}}"><i class="fa fa-pencil"></i></a>
+                        <a class="link-edit link-delete" href="{{route('admin.category.delete',$ssItem->id)}}?sub=2"><i class="fa fa-trash-o"></i></a></td>
+                </tr>
+                @endforeach
+                @endif
 
 
-                    @endforeach
+                @endforeach
                 @endif
                 @endforeach
 
