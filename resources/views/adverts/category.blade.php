@@ -23,6 +23,13 @@
                             </li>
                         @endforeach
 
+                    @else
+                        @foreach($pop as $Category)
+                            <li>
+                                <a href="/{{$CityRegion->url}}/{{$CheckCategory->url}}/{{$Category['url']}}/">{{$Category['name']}}</a>
+                            </li>
+                        @endforeach
+
                     @endif
 
                 </ul>
@@ -129,11 +136,20 @@
 
                 </div>
                 <div class="page-col-right s-300">
+
                     @if(!empty($BannersPages[0]->path))
                         <div class="vertical-img-bnr">
                             <a target="_blank" href="{{$BannersPages[0]->link}}">
                                 <img src="{{$BannersPages[0]->path}}"/>
                             </a>
+                        </div>
+                    @endif
+
+                    @if(!empty($side))
+                        <div class="side-links">
+                        @foreach ($side as $svc)
+                            <a target="_blank" href="#">{{ $svc->name }}</a>
+                        @endforeach
                         </div>
                     @endif
                 </div>
