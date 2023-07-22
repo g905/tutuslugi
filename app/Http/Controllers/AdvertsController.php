@@ -16,42 +16,77 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AdvertsController extends Controller {
-    /* public function AdvertCurrentAjax($City, $Categroy, $SubCategory, $Advert, Request $request)
-      {
-      $Advert = str_replace('t-', '', $Advert);
 
-      $CheckCity = Regions::where(['url' => $City])->first();
-      $CheckCategory = AdvertCategories::where(['url' => $SubCategory])->first();
-      $CheckParentCategory = AdvertCategories::where(['url' => $Categroy])->first();
-      if(!$CheckCategory){
-      $AdvertItem = Adverts::where(
-      ['id'        => $Advert, 'status'=>2, 'sub_category' => 0, 'category' => $CheckParentCategory->id,
-      'region_id' => $CheckCity['id']]
-      )->first();
-      }
+    public function ServicePage(Request $request, $city, $cat, $subcat, $service) {
+        $CheckCategory = AdvertCategories::GetCategoryUrlInfoRegion($request->route('subcategory'), $request->session()->get('city'));
+        $CheckParentCategory = AdvertCategories::GetCategoryUrlInfoRegion($request->route('category'), $request->session()->get('city'));
 
+        if (!$CheckCategory || !$CheckParentCategory) {
+            if (!$CheckCategory) {
+                return $this->AdvertCurrent($request->route('region'), $request->route('category'), '', $request->route('subcategory'), $request);
+            }
+            abort(404);
+        }
 
+        $SubCategories = AdvertCategories::GetAllCategories(
+                        $CheckCategory->parent_id, $request->session()->get('city'), 0
+                )->toArray();
+        if ($SubCategories) {
+            $SubCategories = array_chunk($SubCategories, ceil(count($SubCategories) / 3));
+        } else {
+            $SubCategories = array();
+        }
 
-      if ((!$CheckCategory&&!$AdvertItem) || !$CheckParentCategory || !$CheckCity) {
-      abort(404);
-      }
+        $SeoBottomCategories = AdvertCategories::GetAllCategories(
+                        0, $request->session()->get('city'), 0, 4, 1
+        );
+        $SubCategories = array();
 
-      if(empty($AdvertItem)){
-      $AdvertItem = Adverts::where(
-      ['id'        => $Advert,'status'=>2, 'sub_category' => $CheckCategory->id, 'category' => $CheckParentCategory->id,
-      'region_id' => $CheckCity['id']]
-      )->first();
-      }
-      if (!$AdvertItem) {
-      abort(404);
-      }
+        $SeoBottomCity = SeoPage::GetSeoCityBottom($request);
 
-      $AdvertItem->update(['views' => $AdvertItem->views + 1]);
-      $AdvertItem = Adverts::GetAdvertData($AdvertItem);
+        $Adverts = User::GetUsersSite(array('limit' => 20, 'region_id' => $request->session()->get('city'), 'sub_category_id' => $CheckCategory->id, 'service' => $service));
+        $AdvertsCountAll = Adverts::GetAdverts(
+                        array('limit' => 50, 'region_id' => $request->session()->get('city'),
+                            'sub_category_id' => $CheckCategory->id, 'children_sub_category_id' => $CheckParentCategory->id), 1
+        );
 
+        $DisableSearchBots = 0;
+        if ($AdvertsCountAll <= 0) {
+            $DisableSearchBots = 1;
+        }
+        $AdvertsCountAllUnique = Adverts::GetAdverts(
+                        array('limit' => 50, 'group_by_user_id' => 1, 'sub_category_id' => $CheckCategory->id, 'region_id' => $request->session()->get('city'), 'children_sub_category_id' => $CheckParentCategory->id), 1
+        );
 
-      return response()->json(['success' => $AdvertItem->phone_clear ?  $AdvertItem->phone_clear : $AdvertItem['user_info']->phone_clear]);
-      } */
+        $CheckCategory->title = SeoPage::GetSeoTextByMarkers($CheckCategory->title, $request, $CheckCategory, $AdvertsCountAll, $AdvertsCountAllUnique);
+        $CheckCategory->description = SeoPage::GetSeoTextByMarkers($CheckCategory->description, $request, $CheckCategory, $AdvertsCountAll, $AdvertsCountAllUnique);
+        $CheckCategory->text = SeoPage::GetSeoTextByMarkers($CheckCategory->text, $request, $CheckCategory, $AdvertsCountAll, $AdvertsCountAllUnique);
+        $CheckCategory->h1 = SeoPage::GetSeoTextByMarkers($CheckCategory->h1, $request, $CheckCategory, $AdvertsCountAll, $AdvertsCountAllUnique);
+
+        //СЕО ДАННЫЕ
+        $dataPageDefault = new \stdClass();
+        $dataPageDefault->title = $CheckCategory->title;
+        $dataPageDefault->h1 = $CheckCategory->h1;
+        $dataPageDefault->description = $CheckCategory->description;
+        $dataPageDefault->text = $CheckCategory->text;
+        $countTextBread = $CheckCategory->GetAdvertsCountByRegion() . " " . AdvertCategories::GetCategoryTextCount(
+                        $AdvertsCountAll
+        );
+
+        $PopularPages = SeoPage::GetSeoPopularPagesByCategory(0, $CheckCategory->id, $request);
+        $BlockPages = SeoPage::GetSeoColumnPagesByCategory(0, $CheckCategory->id, $request);
+
+        return view(
+                'adverts.service', ['Users' => $Adverts, 'PopularPages' => $PopularPages, 'BlockPages' => $BlockPages, 'HeaderSearchShow' => 1,
+            'SeoBottomCity' => $SeoBottomCity,
+            'CheckCategory' => $CheckCategory, 'dataPageDefault' => $dataPageDefault, 'CheckParentCategory' => $CheckParentCategory,
+            'SubCategories' => $SubCategories, 'AdvertsCountAll' => $AdvertsCountAll,
+            'countTextBread' => $countTextBread, 'SeoBottomCategories' => $SeoBottomCategories,
+            'subcategory' => 1, 'DisableSearchBots' => $DisableSearchBots,
+            'pop' => AdvertCategories::GetPopular($CheckCategory->id),
+            'side' => AdvertCategories::GetSide()]
+        );
+    }
 
     public function AdvertCurrent($City, $Categroy, $SubCategory, $Advert, Request $request) {
         $Advert = str_replace('t-', '', $Advert);
@@ -291,10 +326,6 @@ class AdvertsController extends Controller {
             return $this->SeoPagePage($request);
         }
 
-
-
-
-
         $SubCategories = AdvertCategories::GetAllCategories($CheckCategory->id, $request->session()->get('city'), 0, 0);
         if ($SubCategories) {
             foreach ($SubCategories as $key => $SubCategory) {
@@ -305,18 +336,11 @@ class AdvertsController extends Controller {
             }
         }
 
-
-
-
-
         $SeoBottomCity = SeoPage::GetSeoCityBottom($request);
         $SeoBottomCategories = AdvertCategories::GetAllCategories(
                         0, $request->session()->get('city'), 0, 4, 1
         );
 
-        /* $Adverts = Adverts::GetAdverts(
-          array('limit' => 50, 'region_id' => $request->session()->get('city'), 'category_id' => $CheckCategory->id)
-          ); */
         $Adverts = User::GetUsersSite(array('limit' => 20, 'region_id' => $request->session()->get('city'), 'category_id' => $CheckCategory->id));
         $AdvertsCountAll = Adverts::GetAdverts(
                         array('limit' => 50, 'region_id' => $request->session()->get('city'), 'category_id' => $CheckCategory->id), 1
@@ -342,32 +366,31 @@ class AdvertsController extends Controller {
 
         $PopularPages = SeoPage::GetSeoPopularPagesByCategory($CheckCategory->id, 0, $request);
         $BlockPages = SeoPage::GetSeoColumnPagesByCategory($CheckCategory->id, 0, $request);
-        /*     echo"<pre>";
-          echo print_r($BlockPages,1);
-          echo"</pre>"; */
 
         $DisableSearchBots = 0;
         if ($AdvertsCountAll <= 0) {
             $DisableSearchBots = 1;
         }
 
-        return view(
-                'adverts.category', ['Users' => $Adverts, 'HeaderSearchShow' => 1,
-            'SeoBottomCity' => $SeoBottomCity, 'CheckCategory' => $CheckCategory,
-            'SubCategories' => $SubCategories, 'AdvertsCountAll' => $AdvertsCountAll,
-            'dataPageDefault' => $dataPageDefault, 'countTextBread' => $countTextBread,
-            'PopularPages' => $PopularPages, 'BlockPages' => $BlockPages, 'DisableSearchBots' => $DisableSearchBots, 'SeoBottomCategories' => $SeoBottomCategories]
+        return view('adverts.category', [
+            'Users' => $Adverts,
+            'HeaderSearchShow' => 1,
+            'SeoBottomCity' => $SeoBottomCity,
+            'CheckCategory' => $CheckCategory,
+            'SubCategories' => $SubCategories,
+            'AdvertsCountAll' => $AdvertsCountAll,
+            'dataPageDefault' => $dataPageDefault,
+            'countTextBread' => $countTextBread,
+            'PopularPages' => $PopularPages,
+            'BlockPages' => $BlockPages,
+            'DisableSearchBots' => $DisableSearchBots,
+            'SeoBottomCategories' => $SeoBottomCategories
+                ]
         );
     }
 
     //Подкатегория категория для города
     public function SubCategoryPage(Request $request) {
-        //  AdvertCategories::ChangeRegion($request->session()->get('city'));
-        /* $CheckCategory = AdvertCategories::where(['url' => $request->route('subcategory')])->withCount(
-          ['AdvertsSubCategory as adverts_count']
-          )->first();
-          $CheckParentCategory = AdvertCategories::where(['url' => $request->route('category')])->first(); */
-
 
         $CheckCategory = AdvertCategories::GetCategoryUrlInfoRegion($request->route('subcategory'), $request->session()->get('city'));
         $CheckParentCategory = AdvertCategories::GetCategoryUrlInfoRegion($request->route('category'), $request->session()->get('city'));

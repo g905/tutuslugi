@@ -9,7 +9,6 @@
         </div>
     </section>
 
-
     <section class="home-section-categories" id="home-categories">
         <div class="container">
 
@@ -148,7 +147,7 @@
                     @if(!empty($side))
                         <div class="side-links">
                         @foreach ($side as $svc)
-                            <a target="_blank" href="#">{{ $svc->name }}</a><br>
+                            <a target="_blank" href="#">{{ $svc->name }}</a>
                         @endforeach
                         </div>
                     @endif

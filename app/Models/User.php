@@ -10,71 +10,69 @@ use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\HasApiTokens;
 use Image;
 
-class User extends Authenticatable
-{
-    use HasApiTokens, HasFactory, Notifiable;
+class User extends Authenticatable {
+
+    use HasApiTokens,
+        HasFactory,
+        Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var string[]
      */
-    protected $fillable
-        = [
-            'name',
-            'email',
-            'user_type',
-            'phone',
-            'password',
-            'hash',
-            'user_type',
-            'confirm_phone',
-            'confirm_email',
-            'last_login',
-            'last_phone_call',
-            'views_total',
-            'views_today',
-            'status',
-            'photo',
-            'work_experience',
-            'discount_text',
-            'discount',
-            'about_text',
-        ];
+    protected $fillable = [
+        'name',
+        'email',
+        'user_type',
+        'phone',
+        'password',
+        'hash',
+        'user_type',
+        'confirm_phone',
+        'confirm_email',
+        'last_login',
+        'last_phone_call',
+        'views_total',
+        'views_today',
+        'status',
+        'photo',
+        'work_experience',
+        'discount_text',
+        'discount',
+        'about_text',
+    ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
      * @var array
      */
-    protected $hidden
-        = [
-            'password',
-            'remember_token',
-        ];
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
     /**
      * The attributes that should be cast.
      *
      * @var array
      */
-    protected $casts
-        = [
-            'email_verified_at' => 'datetime',
-        ];
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
 
-    public static function GetMasureList()
-    {
+    public static function GetMasureList() {
         return [
-            1  => 'за услугу',
-            2  => 'за урок',
-            3  => 'за 1 м²',
-            4  => 'за 1 м³',
-            5  => 'за 1 пог. метр',
-            6  => 'за 1 шт.',
-            7  => 'за 1 метр',
-            8  => 'за кг.',
-            9  => 'за 1 км',
+            1 => 'за услугу',
+            2 => 'за урок',
+            3 => 'за 1 м²',
+            4 => 'за 1 м³',
+            5 => 'за 1 пог. метр',
+            6 => 'за 1 шт.',
+            7 => 'за 1 метр',
+            8 => 'за кг.',
+            9 => 'за 1 км',
             10 => 'за 45 мин.',
             11 => 'за 1 час +',
             12 => 'за 1 сутки',
@@ -83,18 +81,17 @@ class User extends Authenticatable
         ];
     }
 
-    public static function GetUserServices($UserID = 0){
-        if(!$UserID){
+    public static function GetUserServices($UserID = 0) {
+        if (!$UserID) {
             $UserID = Auth::user()->id;
         }
 
-        $UserCitys = UserServices::select(['user_services.price','advert_categories.measure','advert_categories.name'])->leftJoin('advert_categories', 'advert_categories.id', '=', 'user_services.services_id') ->where('user_id', $UserID)->get();
+        $UserCitys = UserServices::select(['user_services.price', 'advert_categories.measure', 'advert_categories.name'])->leftJoin('advert_categories', 'advert_categories.id', '=', 'user_services.services_id')->where('user_id', $UserID)->get();
 
         return $UserCitys;
     }
 
-    public static function GetUsersList($Filter = array())
-    {
+    public static function GetUsersList($Filter = array()) {
         $Users = User::where('user_type', '>=', 0);
         //Поиск по ID
         if (isset($Filter['id'])) {
@@ -109,8 +106,7 @@ class User extends Authenticatable
         return $Users->orderBy('id', 'DESC')->paginate(50);
     }
 
-    public static function UploadUserPhoto(string $Image, int $UserID = 0)
-    {
+    public static function UploadUserPhoto(string $Image, int $UserID = 0) {
         if (!$UserID) {
             $userID = Auth::user()->id;
         }
@@ -124,11 +120,10 @@ class User extends Authenticatable
             $urlMainImage = '' . $FileName . ".jpg";
             $img = Image::make(file_get_contents($Image));
             $img->resize(
-                300, 300, function ($const) {
-                $const->aspectRatio();
-            }
+                    300, 300, function ($const) {
+                        $const->aspectRatio();
+                    }
             )->save($filePath . '' . $FileName . '.jpg', 80, 'jpg');
-
 
             $User = User::find($userID);
             if ($User->photo) {
@@ -141,10 +136,8 @@ class User extends Authenticatable
         return FALSE;
     }
 
-    public static function GetUsersSite($Filter){
+    public static function GetUsersSite($Filter) {
         $Users = User::select('users.*');
-
-
 
         //Джоины
         if (isset($Filter['region_id'])) {
@@ -156,8 +149,9 @@ class User extends Authenticatable
         if (isset($Filter['sub_category_id'])) {
             $Users->leftJoin('user_categories', 'user_categories.user_id', '=', 'users.id');
         }
-
-
+        if (isset($Filter['service'])) {
+            $Users->join('user_services', 'user_services.user_id', '=', 'users.id');
+        }
         //Условия для джоинов
         if (isset($Filter['region_id'])) {
             $Users->where('user_regions.city_id', $Filter['region_id']);
@@ -168,35 +162,36 @@ class User extends Authenticatable
         if (isset($Filter['sub_category_id'])) {
             $Users->where('user_categories.sub_category_id', $Filter['sub_category_id']);
         }
+        if (isset($Filter['service'])) {
+            $svcId = AdvertCategories::where(['url' => $Filter['service']])->select('id')->first()->id;
+            $Users->where('user_services.services_id', $svcId);
+        }
 
-        $Users = $Users->where('status','>=', 1)->where('user_type','=', 0);
+        $Users = $Users->where('status', '>=', 1)->where('user_type', '=', 0);
 
-
-
-        if(isset($Filter['page'])){
+        if (isset($Filter['page'])) {
             $Page = $Filter['page'];
-        }else{
+        } else {
             $Page = 0;
         }
 
-        if(isset($Filter['limit'])){
-            $Users = $Users->offset($Page*$Filter['limit'])->limit($Filter['limit']);
+        if (isset($Filter['limit'])) {
+            $Users = $Users->offset($Page * $Filter['limit'])->limit($Filter['limit']);
             $Users = $Users->groupBy('users.id')->get();
-        }else{
+        } else {
             $Users = $Users->paginate(20);
         }
 
         if ($Users) {
             foreach ($Users as &$user) {
                 $user = self::GetUserData($user);
-
             }
         }
 
         return $Users;
     }
 
-    public static function GetUserData($advert){
+    public static function GetUserData($advert) {
 
         $advert->categories = self::GetUserCategories($advert->id);
         $advert->photos = self::GetUserPhotos($advert->id);
@@ -205,7 +200,7 @@ class User extends Authenticatable
         return $advert;
     }
 
-    public static function GetUserPhotos($UserID = 0){
+    public static function GetUserPhotos($UserID = 0) {
         if (!$UserID) {
             $userID = Auth::user()->id;
         }
@@ -214,21 +209,22 @@ class User extends Authenticatable
         return $UserPhotos;
     }
 
-    public static function GetUserCategories($UserID = 0){
+    public static function GetUserCategories($UserID = 0) {
         if (!$UserID) {
             $userID = Auth::user()->id;
         }
 
-        $UserCategories = UserCategories::select(['advert_categories.name','advert_categories.master_1'])->leftJoin('advert_categories', 'advert_categories.id', '=', 'user_categories.sub_category_id')->where('user_id',$UserID)->get();
+        $UserCategories = UserCategories::select(['advert_categories.name', 'advert_categories.master_1'])->leftJoin('advert_categories', 'advert_categories.id', '=', 'user_categories.sub_category_id')->where('user_id', $UserID)->get();
         return $UserCategories;
     }
 
-    public static function GetUserServices1($UserID = 0){
+    public static function GetUserServices1($UserID = 0) {
         if (!$UserID) {
             $userID = Auth::user()->id;
         }
 
-        $UserCategories = UserCategories::select(['user_services.price','advert_categories.measure','advert_categories.name'])->leftJoin('advert_categories', 'advert_categories.id', '=', 'user_services.services_id') ->where('user_id', Auth::user()->id)->get();
+        $UserCategories = UserCategories::select(['user_services.price', 'advert_categories.measure', 'advert_categories.name'])->leftJoin('advert_categories', 'advert_categories.id', '=', 'user_services.services_id')->where('user_id', Auth::user()->id)->get();
         return $UserCategories;
     }
+
 }
